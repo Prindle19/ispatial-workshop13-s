@@ -4,28 +4,68 @@ from urlparse import urlparse
 import sys
 import json as simplejson
 
-ispatial_url = 'https://ispatialv3-workshop.t-sciences.com'
-
 # Please change the flickr_api_key
 flickr_api_key = '5d49e2dc9774adf2f1065f48c5376b2c'
 
+ispatial_url = 'https://ispatialv3-workshop.t-sciences.com'
+
 def main():
     flickr_params = {
-        'tags': '',
-        'per_page': 2  # Number of photos returned (leave at 2 for now)
+        #'tags': '',
+        'per_page': 2  # Number of photos returned
     }
-    flickr_search(flickr_params)
-    
+    photos = flickr_search(flickr_params)
+    for photo in photos:
+        photo_url = flickr_get_url(photo)
+        photo['url'] = photo_url
+        print 'Photo: ', photo
 
+    default_layer_id = ispatial_get_home_layer_id()
+    print '\n\ndefault_layer_id: ', default_layer_id
+    
 # --------- Helper functions ----------
+def flickr_get_url(photo):
+    "Converts a Search record into flickr URL"
+    return 'http://farm{farm}.staticflickr.com/{server}/{id}_{secret}.jpg'.format(
+        **photo)
+
 def flickr_search(params):
     "Calls the Flickr Search REST endpoint"
     flickr_search_url = 'http://api.flickr.com/services/rest/?method=flickr.photos.search&api_key={0}&privacy_filter=1&safe_search=1&content_type=1&has_geo=1&sort=interestingness-desc&extras=geo%2C+tags&format=json&nojsoncallback=1&woe_id=23424977&accuracy=3'.format(flickr_api_key)
-    # Hint: once you get the response, use simplejson to convert
-    # its contents into a dictionary
-    # e.g json = simplejson.loads(json_string) will return a dictionary with
-    # keys and values that you can access with json['key1']['key11']
+    r = http_req(flickr_search_url, params=params)
+    json = simplejson.loads(r.content)
+    if not r.status == 200 or (json and not json['stat']=='ok'):
+        print "Flickr search failed. ", r.status, json
+        sys.exit(-1)
+    return json['photos']['photo']
 
+def ispatial_get_home_layer_id():
+    "Returns the current user's home layer id"
+    return 'nothing yet'
+
+def ispatial_call(endpoint, params={}):
+    "Calls an iSpatial endpoint"
+    headers = { 'Cookie': sessionid }
+    url = ispatial_url + endpoint
+    r = http_req(url, params=params, headers=headers)
+    json = simplejson.loads(r.content)
+    if not r.status == 200 or (json and not json['success']):
+        print "Error when calling iSpatial: ", r.status, json
+    return json
+
+def ispatial_auth(ispatial_user, ispatial_user_pw):
+    """ Connects to ispatial and sets a session token.
+        The token will be used in all future requests
+    """
+    url = ispatial_url + '/rpc/user/login'
+    params = {'username': ispatial_user, 'password': ispatial_user_pw}
+    r = http_req(url, params=params)
+    json = simplejson.loads(r.content)
+    if not r.status == 200 or not json['success']:
+        print "iSpatial was unable to authenticate user. ", r.status, json
+        sys.exit(-1)
+    global sessionid
+    sessionid = r.headers['set-cookie'].split(';')[0]
 
 def http_req(url, method='GET', params={}, headers={}):
     """ Basic HTTP request / response. Only url is required
@@ -70,4 +110,8 @@ class Response(object):
         self.headers = headers
 
 if __name__ == '__main__':
+    if len(sys.argv) == 3:
+        ispatial_user = sys.argv[1]
+        ispatial_auth(ispatial_user = ispatial_user,
+                      ispatial_user_pw = sys.argv[2])
     main()
