@@ -5,7 +5,7 @@ import sys
 import json as simplejson
 
 
-ispatial_url = 'https://ispatialv3-workshop.t-sciences.com/'
+ispatial_url = 'https://ispatialv3-workshop.t-sciences.com'
 
 def main():
     # Calling iSpatial, Should tell you that you are not logged in
