@@ -4,15 +4,29 @@ from urlparse import urlparse
 import sys
 import json as simplejson
 
-
 ispatial_url = 'https://ispatialv3-workshop.t-sciences.com'
 
+# Please change the flickr_api_key
+flickr_api_key = '5d49e2dc9774adf2f1065f48c5376b2c'
+
 def main():
-    # Calling iSpatial, Should tell you that you are not logged in
-    r = http_req(ispatial_url + '/rpc/layer/query')
-    print r.content
+    flickr_params = {
+        'tags': '',
+        'per_page': 2  # Number of photos returned (leave at 2 for now)
+    }
+    flickr_search(flickr_params)
+    
 
 # --------- Helper functions ----------
+def flickr_search(params):
+    "Calls the Flickr Search REST endpoint"
+    flickr_search_url = 'http://api.flickr.com/services/rest/?method=flickr.photos.search&api_key={0}&privacy_filter=1&safe_search=1&content_type=1&has_geo=1&sort=interestingness-desc&extras=geo%2C+tags&format=json&nojsoncallback=1&woe_id=23424977&accuracy=3'.format(flickr_api_key)
+    # Hint: once you get the response, use simplejson to convert
+    # its contents into a dictionary
+    # e.g json = simplejson.loads(json_string) will return a dictionary with
+    # keys and values that you can access with json['key1']['key11']
+
+
 def http_req(url, method='GET', params={}, headers={}):
     """ Basic HTTP request / response. Only url is required
 
